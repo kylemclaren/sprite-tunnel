@@ -2,6 +2,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -22,25 +23,15 @@ type finish struct{ err error }
 type model struct {
 	spinner       spinner.Model
 	title, status string
-	history       []string
 	started       time.Time
 	finished      bool
 	err           error
-	width         int
 }
 
 func (m model) Init() tea.Cmd { return m.spinner.Tick }
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch v := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = v.Width
 	case event:
-		if m.status != "" {
-			m.history = append(m.history, m.status)
-			if len(m.history) > 5 {
-				m.history = m.history[1:]
-			}
-		}
 		m.status = v.text
 	case finish:
 		m.finished = true
@@ -54,11 +45,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	var b strings.Builder
 	b.WriteString(purple.Bold(true).Render("✦ SPRITE TUNNEL") + dim.Render("  /  "+m.title) + "\n\n")
-	for _, s := range m.history {
-		b.WriteString(dim.Render("  · "+s) + "\n")
-	}
 	icon := m.spinner.View()
-	if m.finished {
+	if m.finished || strings.HasPrefix(m.status, "tunnel up:") {
 		icon = green.Render("✓")
 		if m.err != nil {
 			icon = lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Render("✕")
@@ -68,10 +56,13 @@ func (m model) View() string {
 	if m.finished && m.err != nil {
 		status = m.err.Error()
 	}
-	b.WriteString("\n" + icon + " " + status + "\n\n")
-	b.WriteString(dim.Render("  " + time.Since(m.started).Round(time.Second).String() + " elapsed  •  ctrl+c to stop"))
-	width := min(90, max(20, m.width-6))
-	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("62")).Padding(1, 2).Width(width).Render(b.String()) + "\n"
+	b.WriteString(icon + " " + status + "\n")
+	footer := time.Since(m.started).Round(time.Second).String() + " elapsed"
+	if !m.finished {
+		footer += "  •  ctrl+c to stop"
+	}
+	b.WriteString(dim.Render(footer))
+	return b.String() + "\n"
 }
 
 type UI struct {
@@ -79,13 +70,24 @@ type UI struct {
 	done    chan struct{}
 }
 
+// Start reuses the display owned by the outer command. Only the owner finishes it.
+func Start(ctx context.Context, title string) (context.Context, *UI, func(error)) {
+	if display, ok := ctx.Value(displayKey{}).(*UI); ok {
+		return ctx, display, func(error) {}
+	}
+	display := New(title)
+	return context.WithValue(ctx, displayKey{}, display), display, display.Finish
+}
+
+type displayKey struct{}
+
 func New(title string) *UI {
 	u := &UI{}
 	if term.IsTerminal(int(os.Stderr.Fd())) && os.Getenv("NO_COLOR") == "" && os.Getenv("TERM") != "dumb" {
 		s := spinner.New()
 		s.Spinner = spinner.Dot
 		s.Style = purple
-		u.program = tea.NewProgram(model{spinner: s, title: title, started: time.Now(), status: "getting ready", width: 90}, tea.WithInput(nil), tea.WithOutput(os.Stderr), tea.WithoutSignalHandler())
+		u.program = tea.NewProgram(model{spinner: s, title: title, started: time.Now(), status: "getting ready"}, tea.WithInput(nil), tea.WithOutput(os.Stderr), tea.WithoutSignalHandler())
 		u.done = make(chan struct{})
 		go func() { defer close(u.done); _, _ = u.program.Run() }()
 	}

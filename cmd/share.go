@@ -118,6 +118,8 @@ func shareAt(ctx context.Context, args []string, base string) (err error) {
 	if e = validateAPI(base); e != nil {
 		return e
 	}
+	ctx, display, finish := ui.Start(ctx, "share / "+name)
+	defer func() { finish(err) }()
 	public, private, needsInstall, e := prepareShare(ctx, base, credentials.Token, name, options.auth)
 	if e != nil {
 		return e
@@ -135,8 +137,6 @@ func shareAt(ctx context.Context, args []string, base string) (err error) {
 	if e != nil {
 		return e
 	}
-	display := ui.New("share / " + name)
-	defer func() { display.Finish(err) }()
 	access := "public"
 	ingress := ""
 	if private {
@@ -152,8 +152,8 @@ func shareAt(ctx context.Context, args []string, base string) (err error) {
 }
 
 func prepareShare(ctx context.Context, base, token, name, auth string) (public string, private, needsInstall bool, err error) {
-	display := ui.New("prepare / " + name)
-	defer func() { display.Finish(err) }()
+	ctx, display, finish := ui.Start(ctx, "prepare / "+name)
+	defer func() { finish(err) }()
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 	api := sprites.New(token, sprites.WithBaseURL(base), sprites.WithDisableControl())

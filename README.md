@@ -1,6 +1,6 @@
 # sprite-tunnel
 
-Your localhost, at your Sprite URL. One Go binary: an HTTP relay on the Sprite and an outbound client on your laptop. Includes an animated terminal dashboard, animated spinners, installation stages, connection history, and elapsed time. Pipes and `NO_COLOR=1` get plain logs.
+Your localhost, at your Sprite URL. One Go binary: an HTTP relay on the Sprite and an outbound client on your laptop. Includes a single borderless terminal display with animated spinners, current status, and elapsed time. Pipes and `NO_COLOR=1` get plain logs.
 
 ## Quick start
 

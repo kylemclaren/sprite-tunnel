@@ -55,8 +55,8 @@ func installUsing(ctx context.Context, args []string, suppliedToken string) (err
 	if e = validateAPI(*apiURL); e != nil {
 		return e
 	}
-	display := ui.New("install / " + *name)
-	defer func() { display.Finish(err) }()
+	ctx, display, finish := ui.Start(ctx, "install / "+*name)
+	defer func() { finish(err) }()
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 	display.Step("1/5  Finding your sprite")

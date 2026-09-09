@@ -33,6 +33,8 @@ func client(ctx context.Context, args []string) (err error) {
 	if e := validateAuth(*auth); e != nil {
 		return e
 	}
+	ctx, display, finish := ui.Start(ctx, "connect")
+	defer func() { finish(err) }()
 	token := ""
 	if *auth != "" {
 		var e error
@@ -63,12 +65,10 @@ func client(ctx context.Context, args []string) (err error) {
 		}
 	}
 	if *auth != "" && !*bootstrap {
-		display := ui.New("URL access")
 		display.Step("Setting URL auth: " + *auth)
 		updateCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		resolved, e := setURLAuth(updateCtx, *name, *apiURL, token, *auth)
 		cancel()
-		display.Finish(e)
 		if e != nil {
 			return e
 		}
@@ -106,8 +106,6 @@ func client(ctx context.Context, args []string) (err error) {
 			return e
 		}
 	}
-	display := ui.New("connect")
-	defer func() { display.Finish(err) }()
 	c := &tunnel.Client{URL: control, Target: *to, Secret: s, IngressToken: token, Logger: log.New(display, "", 0), Verbose: *verbose, OnConnect: func() { display.Step(fmt.Sprintf("tunnel up: %s  →  %s", public, *to)) }}
 	err = c.Run(ctx)
 	if err == nil {

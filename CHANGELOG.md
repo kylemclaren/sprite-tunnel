@@ -2,6 +2,7 @@
 
 ## v0.1.1
 
+- Keep setup and connection in one live terminal display, without borders or duplicate panels.
 - Share a port with `sprite-tunnel 3000`; relay setup is automatic.
 - Reuse the Sprite CLI login, OS keyring/file-backed credentials, and directory selection.
 - Use `--public` or `--private` for access, and `--sprite NAME` to override selection.
