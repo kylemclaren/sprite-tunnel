@@ -42,11 +42,24 @@ func status(ctx context.Context, args []string) (err error) {
 	if err = parse(f, args); err != nil {
 		return err
 	}
+	inferredToken := ""
+	if *name != "" && *raw == "" && *ingress == "" {
+		if saved, e := apiToken(""); e == nil {
+			resolved, private, e := authenticatedEndpoint(ctx, "https://api.sprites.dev", *name, saved)
+			if e != nil {
+				return e
+			}
+			*raw = resolved
+			if private {
+				inferredToken = saved
+			}
+		}
+	}
 	_, public, e := endpoint(*name, *raw)
 	if e != nil {
 		return e
 	}
-	token := ""
+	token := inferredToken
 	if *ingress != "" {
 		token, e = readSecret(*ingress)
 		if e != nil {

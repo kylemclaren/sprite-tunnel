@@ -44,6 +44,8 @@ def main():
             env = dict(os.environ, GOOS=system, GOARCH=arch, CGO_ENABLED="0")
             subprocess.run(["go", "build", "-trimpath", "-buildvcs=false", "-ldflags", flags,
                             "-o", str(binary), "."], cwd=ROOT, env=env, check=True)
+            if (system, arch) != ("linux", "amd64"):
+                shutil.copy2(dist / "smoke" / "sprite-tunnel", folder / "sprite-tunnel-linux-amd64")
             for name in ("README.md", "CHANGELOG.md"):
                 shutil.copy2(ROOT / name, folder / name)
             suffix = "zip" if system == "windows" else "tar.gz"

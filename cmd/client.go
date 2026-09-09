@@ -79,6 +79,19 @@ func client(ctx context.Context, args []string) (err error) {
 	if *auth != "sprite" {
 		token = ""
 	}
+	// Reuse CLI authentication for private ingress even without an access-mode change.
+	if *name != "" && *raw == "" {
+		if saved, e := apiToken(*apiFile); e == nil {
+			resolved, private, e := authenticatedEndpoint(ctx, *apiURL, *name, saved)
+			if e != nil {
+				return e
+			}
+			*raw = resolved
+			if private {
+				token = saved
+			}
+		}
+	}
 	control, public, e := endpoint(*name, *raw)
 	if e != nil {
 		return e

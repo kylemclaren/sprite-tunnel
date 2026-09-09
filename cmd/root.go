@@ -14,12 +14,14 @@ import (
 
 func Run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: sprite-tunnel <client|relay|install|status> [flags]")
+		return errors.New("specify a local port: sprite-tunnel 3000 (see --help)")
 	}
 	var err error
 	switch args[0] {
 	case "version", "--version", "-v":
 		fmt.Printf("sprite-tunnel %s (commit %s, built %s)\n", Version, Commit, BuildDate)
+	case "share":
+		err = share(ctx, args[1:])
 	case "relay":
 		err = relay(ctx, args[1:])
 	case "client":
@@ -29,9 +31,9 @@ func Run(ctx context.Context, args []string) error {
 	case "status":
 		err = status(ctx, args[1:])
 	case "help", "--help", "-h":
-		fmt.Println("sprite-tunnel — your localhost, anywhere\n\n  client   --sprite NAME --to HOST:PORT [--bootstrap]\n  relay    --listen :8080 [--secret-file PATH]\n  install  --sprite NAME [--api-url URL] [--binary PATH]\n  status   --sprite NAME [--json]\n\nUse <command> --help for options. Set NO_COLOR=1 for plain output.")
+		fmt.Println("sprite-tunnel — share a local port through a Sprite\n\n  sprite-tunnel 3000\n  sprite-tunnel 3000 --public\n  sprite-tunnel 3000 --sprite my-app\n\nUses your Sprite CLI login and selection; sets up the relay automatically.\nWith no selected Sprite, uses or creates 'sprite-tunnel'.\n\nOptions: --sprite NAME, --public, --private, --verbose\nAdvanced commands: client, relay, install, status, version\nRun sprite-tunnel share --help for details.")
 	default:
-		return fmt.Errorf("unknown command %q", args[0])
+		err = share(ctx, args)
 	}
 	if errors.Is(err, flag.ErrHelp) {
 		return nil

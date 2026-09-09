@@ -2,68 +2,56 @@
 
 Your localhost, at your Sprite URL. One Go binary: an HTTP relay on the Sprite and an outbound client on your laptop. Includes an animated terminal dashboard, animated spinners, installation stages, connection history, and elapsed time. Pipes and `NO_COLOR=1` get plain logs.
 
-## Homebrew
+## Quick start
 
 ```sh
 brew install kylemclaren/tap/sprite-tunnel
+sprite-tunnel 3000
 ```
 
-The formula supports macOS and Linux on Intel and ARM, and bundles the Linux relay. No Go installation is needed:
+Already logged in with `sprite login`? That's all you need. The command reuses your Sprite CLI credentials and selection, sets up the relay when needed, and prints the URL. It works with both OS keyrings and the CLI's file-backed credentials; it never changes your login storage.
 
 ```sh
-sprite-tunnel install --sprite my-app --url-auth public \
-  --binary "$(brew --prefix sprite-tunnel)/libexec/sprite-tunnel-linux-amd64"
-sprite-tunnel client --sprite my-app --to localhost:3000
+sprite-tunnel 3000 --public               # Anyone with the URL can connect
+sprite-tunnel 3000 --private              # Require Sprite authentication
+sprite-tunnel 3000 --sprite my-app        # Use a particular Sprite
+sprite-tunnel localhost:3000              # An explicit target also works
 ```
 
-Installation requires `SPRITES_TOKEN` or `--api-token-file` as described below.
+Without `--public` or `--private`, the Sprite's current URL access setting stays unchanged. Newly created Sprites start private. Access changes persist after the tunnel exits.
 
-## Releases
+The selected Sprite comes from the nearest `.sprite` file (including `.sprite/selected`) or the CLI's directory history. If none is selected, the command uses or creates a dedicated Sprite named `sprite-tunnel`. New Sprites receive the `app:sprite-tunnel` label. A working relay is reused on later runs. Ctrl+C disconnects the tunnel; the Sprite remains available for reconnection.
 
-Download a prebuilt archive for Linux, macOS, or Windows (amd64 or arm64) from [GitHub Releases](https://github.com/kylemclaren/sprite-tunnel/releases). Each release includes `checksums.txt`. Run `sprite-tunnel --version` to see the version and source commit.
+Homebrew supports macOS and Linux on Intel and ARM. Prebuilt [release archives](https://github.com/kylemclaren/sprite-tunnel/releases) also support Windows. The matching client and Linux relay are bundled and found automatically; Go is not required. Each release includes `checksums.txt`, and `sprite-tunnel --version` reports the version and source commit.
 
-A macOS or Windows client also needs the Linux/amd64 archive for installation: extract it separately and pass its executable with `install --binary /path/to/linux/sprite-tunnel`. Building from source is the alternative.
+## Advanced usage
 
-## Quick start
+The commands below remain available for manual setup and custom relays. They are not needed for the normal sharing flow.
 
-Requires Go 1.26+ to build, an existing Sprite, and a Sprites API credential in `SPRITES_TOKEN` or a file supplied with `--api-token-file`.
+```sh
+sprite-tunnel install --sprite my-app
+sprite-tunnel client --sprite my-app --to localhost:3000
+sprite-tunnel status --sprite my-app
+```
+
+API credentials are read from an explicit `--api-token-file`, `SPRITES_TOKEN` (or `SPRITE_TOKEN`), or your Sprite CLI login. With a CLI login, named-Sprite connections and status checks authenticate private ingress automatically. Custom `--url` connections can use an explicit `--ingress-token-file`.
+
+`--url-auth public|sprite` remains supported on `install` and `client`; the main sharing command uses the shorter `--public` and `--private` flags.
+
+To build from source (Go 1.26+):
 
 ```sh
 go build -trimpath -o bin/sprite-tunnel .
-
-# Install the relay and make the URL publicly accessible.
-./bin/sprite-tunnel install --sprite my-app --url-auth public
-./bin/sprite-tunnel client --sprite my-app --to localhost:3000
+./bin/sprite-tunnel 3000
 ```
 
-Or install and connect in one command:
-
-```sh
-./bin/sprite-tunnel client --sprite my-app --to localhost:3000 \
-  --bootstrap --url-auth public
-```
-
-Switch between public and org-authenticated access while connecting:
-
-```sh
-./bin/sprite-tunnel client --sprite my-app --to localhost:3000 --url-auth public
-./bin/sprite-tunnel client --sprite my-app --to localhost:3000 --url-auth sprite
-```
-
-`--url-auth public|sprite` works on **install and client**. It changes the Sprite's URL setting persistently, including after the client exits. Omit it to preserve the existing setting. Changing it requires `SPRITES_TOKEN` or `--api-token-file`; selecting `sprite` also uses that credential to authenticate the tunnel through private ingress. Visitors must independently satisfy Sprite URL authentication.
-
-To use an already-private URL without changing its setting:
-
-```sh
-./bin/sprite-tunnel client --sprite my-app --to localhost:3000 \
-  --ingress-token-file /path/to/sprites-api-token
-./bin/sprite-tunnel status --sprite my-app \
-  --ingress-token-file /path/to/sprites-api-token
-```
+On non-Linux/amd64 source builds, run from the source directory so the installer can cross-compile the relay, or supply `install --binary PATH`. Packaged downloads find their bundled relay automatically.
 
 ## Commands
 
 ```text
+sprite-tunnel PORT|HOST:PORT [--sprite NAME] [--public|--private] [--verbose]
+share   PORT|HOST:PORT [--sprite NAME] [--public|--private] [--verbose]
 relay   --listen :8080 [--secret-file PATH]
 client  --sprite NAME | --url ws[s]://HOST/_tunnel --to HOST:PORT
         [--secret-file PATH] [--verbose] [--bootstrap]
@@ -97,7 +85,7 @@ Visit `http://127.0.0.1:8080`. Use WSS for a remote relay; plain WS is intended 
 
 ## Creating a Sprite
 
-Installation uses an existing Sprite. Label newly created Sprites with `app:sprite-tunnel`:
+The main sharing command creates the named Sprite if it does not exist, applying `app:sprite-tunnel`. The advanced `install` command uses an existing Sprite. For manual creation, apply the same label:
 
 ```sh
 sprite create my-app --skip-console --label app:sprite-tunnel
@@ -110,7 +98,7 @@ For SDK provisioning, pass `[]string{"app:sprite-tunnel"}` to `CreateSpriteWithO
 The installer uses `superfly/sprites-go` for Sprite lookup, file uploads, URL settings, and service creation. It:
 
 1. Obtains the existing Sprite's real URL.
-2. Uses the running binary on Linux/amd64, or cross-compiles from `--source` on other hosts. `--binary` accepts a prebuilt Linux/amd64 ELF binary, useful when shipping a macOS client without source or Go.
+2. Finds the bundled Linux relay (in Homebrew’s `libexec` or alongside the client), uses the running binary on Linux/amd64, or cross-compiles from `--source`. `--binary` remains an explicit override.
 3. Uploads a staged executable and installs it atomically at `/usr/local/bin/sprite-tunnel`. Writes the relay secret at `/home/sprite/.config/sprite-tunnel/relay.secret`, mode 0600.
 4. Upserts service `tunnel` with `http_port: 8080`, then restarts it so a re-upload takes effect.
 5. Applies an explicit `--url-auth`, checks health through ingress, and saves the URL locally.
@@ -153,7 +141,7 @@ make check                 # go vet, pinned staticcheck, all race tests
 make build
 ```
 
-In-process tests cover GET, a multi-megabyte POST, 10 concurrent requests, WebSocket echo, health, 503, 502, sub-5-second reconnect, replacement, forwarding headers, shutdown, secure/idempotent secret creation, installation against a mock API, and URL-auth switching.
+In-process tests cover CLI login/keyring resolution, port shorthand, labelled provisioning, relay reuse, GET, a multi-megabyte POST, 10 concurrent requests, WebSocket echo, health, 503, 502, sub-5-second reconnect, replacement, forwarding headers, shutdown, secure/idempotent secret creation, installation against a mock API, and URL-auth switching.
 
 Opt-in live tests use an already-installed disposable Sprite:
 
@@ -172,6 +160,12 @@ go test -tags integration ./cmd -run TestLiveCLIURLAuth -v
 ```
 
 Production ingress was tested on 2026-09-09 with private and public URL auth: HTTP, POST, 10 concurrent requests, WebSocket echo, clean disconnect, and 35 idle seconds without reconnecting. Install and reinstall succeeded. The exact ingress idle-timeout limit remains undocumented/unconfirmed.
+
+A separate opt-in `TestLiveShare` runs the real binary using only the Sprite CLI login, verifies automatic labelled provisioning, private/public traffic and relay reuse, then deletes the disposable Sprite:
+
+```sh
+TEST_SHARE_BINARY="$PWD/bin/sprite-tunnel" go test -tags integration ./cmd -run TestLiveShare -v
+```
 
 `internal/tunnel` has no CLI, terminal UI, or Sprites SDK dependency. It can be moved into the main Sprite CLI module when integrating as `sprite serve` (Go's `internal` import rule prevents importing it directly from an unrelated module).
 

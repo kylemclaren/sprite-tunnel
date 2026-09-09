@@ -20,7 +20,9 @@ import (
 	sprites "github.com/superfly/sprites-go"
 )
 
-func install(ctx context.Context, args []string) (err error) {
+func install(ctx context.Context, args []string) error { return installUsing(ctx, args, "") }
+
+func installUsing(ctx context.Context, args []string, suppliedToken string) (err error) {
 	f := flag.NewFlagSet("install", flag.ContinueOnError)
 	name := f.String("sprite", "", "existing sprite name")
 	auth := f.String("url-auth", "", "set URL access: public or sprite (default: unchanged)")
@@ -43,9 +45,12 @@ func install(ctx context.Context, args []string) (err error) {
 	if e = validateAuth(*auth); e != nil {
 		return e
 	}
-	token, e := apiToken(*apiFile)
-	if e != nil {
-		return e
+	token := suppliedToken
+	if token == "" {
+		token, e = apiToken(*apiFile)
+		if e != nil {
+			return e
+		}
 	}
 	if e = validateAPI(*apiURL); e != nil {
 		return e
@@ -160,7 +165,7 @@ func install(ctx context.Context, args []string) (err error) {
 	}
 	display.Step("Relay ready: " + public)
 	if ingressToken != "" {
-		display.Step("Private ingress: use client --url-auth sprite with your API credential")
+		display.Step("URL access: private")
 	}
 	return nil
 }
@@ -221,6 +226,9 @@ func ensureSecret(path string) (string, error) {
 }
 func relayBinary(ctx context.Context, path, source string) (string, func(), error) {
 	cleanup := func() {}
+	if path == "" {
+		path = bundledRelay()
+	}
 	if path == "" && runtime.GOOS == "linux" && runtime.GOARCH == "amd64" {
 		path, _ = os.Executable()
 	}
@@ -259,4 +267,25 @@ func relayBinary(ctx context.Context, path, source string) (string, func(), erro
 		return "", func() {}, errors.New("relay binary must target linux/amd64")
 	}
 	return path, cleanup, nil
+}
+
+// Homebrew ships the relay in libexec; standalone archives can place it beside the client.
+func bundledRelay() string {
+	exe, e := os.Executable()
+	if e != nil {
+		return ""
+	}
+	return bundledRelayFor(exe)
+}
+
+func bundledRelayFor(exe string) string {
+	if real, e := filepath.EvalSymlinks(exe); e == nil {
+		exe = real
+	}
+	for _, candidate := range []string{filepath.Join(filepath.Dir(exe), "..", "libexec", "sprite-tunnel-linux-amd64"), filepath.Join(filepath.Dir(exe), "sprite-tunnel-linux-amd64")} {
+		if info, e := os.Stat(candidate); e == nil && info.Mode().IsRegular() {
+			return candidate
+		}
+	}
+	return ""
 }

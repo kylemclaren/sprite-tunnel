@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/kylemclaren/sprite-tunnel/internal/spriteauth"
 	sprites "github.com/superfly/sprites-go"
 )
 
@@ -22,7 +23,8 @@ func apiToken(path string) (string, error) {
 	if s := os.Getenv("SPRITES_TOKEN"); s != "" {
 		return s, nil
 	}
-	return "", errors.New("provide SPRITES_TOKEN or --api-token-file")
+	credentials, err := spriteauth.Load()
+	return credentials.Token, err
 }
 func validateAuth(mode string) error {
 	if mode != "" && mode != "public" && mode != "sprite" {
@@ -120,4 +122,19 @@ func remoteExec(ctx context.Context, base, token, name string, args ...string) e
 			return fmt.Errorf("remote command %s exited %d", strings.Join(args, " "), code)
 		}
 	}
+}
+
+func authenticatedEndpoint(ctx context.Context, base, name, token string) (string, bool, error) {
+	if e := validateAPI(base); e != nil {
+		return "", false, e
+	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	api := sprites.New(token, sprites.WithBaseURL(base), sprites.WithDisableControl())
+	defer api.Close()
+	remote, e := api.GetSprite(ctx, name)
+	if e != nil {
+		return "", false, e
+	}
+	return remote.URL, remote.URLSettings == nil || remote.URLSettings.Auth != "public", nil
 }

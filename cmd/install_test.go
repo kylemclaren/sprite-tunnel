@@ -203,3 +203,36 @@ func TestProductionAPIOnly(t *testing.T) {
 		}
 	}
 }
+
+func TestBundledRelayDiscovery(t *testing.T) {
+	root := t.TempDir()
+	bin := filepath.Join(root, "bin")
+	libexec := filepath.Join(root, "libexec")
+	if e := os.MkdirAll(bin, 0755); e != nil {
+		t.Fatal(e)
+	}
+	if e := os.MkdirAll(libexec, 0755); e != nil {
+		t.Fatal(e)
+	}
+	exe := filepath.Join(bin, "sprite-tunnel")
+	if e := os.WriteFile(exe, []byte("client"), 0755); e != nil {
+		t.Fatal(e)
+	}
+	relay := filepath.Join(libexec, "sprite-tunnel-linux-amd64")
+	if e := os.WriteFile(relay, []byte("relay"), 0755); e != nil {
+		t.Fatal(e)
+	}
+	if got := bundledRelayFor(exe); got != relay {
+		t.Fatalf("Homebrew relay = %q", got)
+	}
+	if e := os.Remove(relay); e != nil {
+		t.Fatal(e)
+	}
+	relay = filepath.Join(bin, "sprite-tunnel-linux-amd64")
+	if e := os.WriteFile(relay, []byte("relay"), 0755); e != nil {
+		t.Fatal(e)
+	}
+	if got := bundledRelayFor(exe); got != relay {
+		t.Fatalf("archive relay = %q", got)
+	}
+}
