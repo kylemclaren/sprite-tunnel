@@ -1,0 +1,6 @@
+/bin/
+*.secret
+*.token
+*.log
+/dist/
+__pycache__/
