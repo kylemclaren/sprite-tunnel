@@ -18,6 +18,8 @@ Releases are built and published by `.github/workflows/release.yml` when a versi
 
 The release workflow reruns CI before building. Release versions and commit/date metadata are embedded in the executable. The build script accepts semantic-version tags, including prerelease suffixes; prereleases are marked accordingly on GitHub.
 
+After publication, update `Formula/sprite-tunnel.rb` in [kylemclaren/homebrew-tap](https://github.com/kylemclaren/homebrew-tap): bump its version, archive URLs, four platform hashes, and bundled Linux relay hash using the published `checksums.txt`. Push the tap update and wait for its macOS/Linux installation tests to pass.
+
 Never move or overwrite a published tag. If a published release needs a fix, use a new patch version. If an unpublished release workflow fails, fix the cause and rerun failed jobs when possible. Before manually recovering a partially created release, inspect its existing assets rather than overwriting them blindly.
 
 Ordinary CI uses in-process tests and does not create Sprites. If live verification is needed, use only `https://api.sprites.dev`, label the newly created Sprite `app:sprite-tunnel`, and delete it after testing. Do not include credentials in release artifacts.

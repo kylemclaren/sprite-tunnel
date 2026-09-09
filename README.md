@@ -2,6 +2,22 @@
 
 Your localhost, at your Sprite URL. One Go binary: an HTTP relay on the Sprite and an outbound client on your laptop. Includes an animated terminal dashboard, animated spinners, installation stages, connection history, and elapsed time. Pipes and `NO_COLOR=1` get plain logs.
 
+## Homebrew
+
+```sh
+brew install kylemclaren/tap/sprite-tunnel
+```
+
+The formula supports macOS and Linux on Intel and ARM, and bundles the Linux relay. No Go installation is needed:
+
+```sh
+sprite-tunnel install --sprite my-app --url-auth public \
+  --binary "$(brew --prefix sprite-tunnel)/libexec/sprite-tunnel-linux-amd64"
+sprite-tunnel client --sprite my-app --to localhost:3000
+```
+
+Installation requires `SPRITES_TOKEN` or `--api-token-file` as described below.
+
 ## Releases
 
 Download a prebuilt archive for Linux, macOS, or Windows (amd64 or arm64) from [GitHub Releases](https://github.com/kylemclaren/sprite-tunnel/releases). Each release includes `checksums.txt`. Run `sprite-tunnel --version` to see the version and source commit.
