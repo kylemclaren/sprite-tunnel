@@ -6,7 +6,7 @@ Initial release.
 
 - Reverse HTTP tunnels over binary WebSockets and yamux, including HTTP streaming and WebSocket upgrades.
 - Relay, client, install, status, and one-command bootstrap.
-- Charm dashboard with animated spinners, installation stages, connection history, and plain-output fallback.
+- Terminal dashboard with animated spinners, installation stages, connection history, and plain-output fallback.
 - `--url-auth public|sprite` controls Sprite URL access and supports private-ingress authentication.
 - Idempotent relay installation, protected secrets, automatic reconnect, and explicit client replacement.
 - Production-only Sprites API access and `app:sprite-tunnel` labels for newly provisioned Sprites.

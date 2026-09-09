@@ -1,6 +1,6 @@
 # sprite-tunnel
 
-Your localhost, at your Sprite URL. One Go binary: an HTTP relay on the Sprite and an outbound client on your laptop. Includes a Charm terminal dashboard, animated spinners, installation stages, connection history, and elapsed time. Pipes and `NO_COLOR=1` get plain logs.
+Your localhost, at your Sprite URL. One Go binary: an HTTP relay on the Sprite and an outbound client on your laptop. Includes an animated terminal dashboard, animated spinners, installation stages, connection history, and elapsed time. Pipes and `NO_COLOR=1` get plain logs.
 
 ## Releases
 
@@ -157,7 +157,7 @@ go test -tags integration ./cmd -run TestLiveCLIURLAuth -v
 
 Production ingress was tested on 2026-09-09 with private and public URL auth: HTTP, POST, 10 concurrent requests, WebSocket echo, clean disconnect, and 35 idle seconds without reconnecting. Install and reinstall succeeded. The exact ingress idle-timeout limit remains undocumented/unconfirmed.
 
-`internal/tunnel` has no CLI, Charm, or Sprites SDK dependency. It can be moved into the main Sprite CLI module when integrating as `sprite serve` (Go's `internal` import rule prevents importing it directly from an unrelated module).
+`internal/tunnel` has no CLI, terminal UI, or Sprites SDK dependency. It can be moved into the main Sprite CLI module when integrating as `sprite serve` (Go's `internal` import rule prevents importing it directly from an unrelated module).
 
 ## CI and release management
 
