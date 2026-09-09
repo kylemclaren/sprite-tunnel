@@ -1,3 +1,6 @@
+<img width="2462" height="1080" alt="playback-clipboard" src="https://github.com/user-attachments/assets/4bc68309-58e0-496b-ac1d-c2fd03d349d9" />
+
+
 # sprite-tunnel
 
 Your localhost, at your Sprite URL. One Go binary: an HTTP relay on the Sprite and an outbound client on your laptop. Includes a single borderless terminal display with animated spinners, current status, and elapsed time. Pipes and `NO_COLOR=1` get plain logs.
